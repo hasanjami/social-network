@@ -1,0 +1,68 @@
+CREATE TABLE notifications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    recipient_id INTEGER NOT NULL,       
+    sender_id INTEGER NOT NULL,          
+    object_id INTEGER NOT NULL,
+    type TEXT CHECK(type IN (
+        'follow_request', 'group_invitation', 'group_join_request',
+        'event_creation', 'follow', 'post', 'reaction', 'comment', 'group'
+    )) NOT NULL,
+    content TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE(recipient_id, type, object_id)
+
+);
+
+CREATE INDEX idx_notifications_type_object_id ON notifications(type, object_id);
+
+-- Trigger to validate that notification.object_id points to a valid record
+-- Group notifications
+CREATE TRIGGER check_notification
+BEFORE INSERT ON notifications
+FOR EACH ROW
+WHEN NEW.type IN ('group_invitation', 'group_join_request', 'group')
+BEGIN
+    SELECT CASE
+        WHEN NOT EXISTS (SELECT 1 FROM groups WHERE id = NEW.object_id)
+        THEN RAISE(ABORT, 'Invalid group_id')
+    END;
+END;
+
+-- Post notifications
+CREATE TRIGGER check_notification_post
+BEFORE INSERT ON notifications
+FOR EACH ROW
+WHEN NEW.type = 'post'
+BEGIN
+    SELECT CASE
+        WHEN NOT EXISTS (SELECT 1 FROM posts WHERE id = NEW.object_id)
+        THEN RAISE(ABORT, 'Invalid post_id')
+    END;
+END;
+
+-- Event notifications
+CREATE TRIGGER check_notification_event
+BEFORE INSERT ON notifications
+FOR EACH ROW
+WHEN NEW.type = 'event_creation'
+BEGIN
+    SELECT CASE
+        WHEN NOT EXISTS (SELECT 1 FROM events WHERE id = NEW.object_id)
+        THEN RAISE(ABORT, 'Invalid event_id')
+    END;
+END;
+
+-- Follow notifications
+CREATE TRIGGER check_notification_follow
+BEFORE INSERT ON notifications
+FOR EACH ROW
+WHEN NEW.type IN ('follow', 'follow_request')
+BEGIN
+    SELECT CASE
+        WHEN NOT EXISTS (SELECT 1 FROM users WHERE id = NEW.object_id)
+        THEN RAISE(ABORT, 'Invalid user_id')
+    END;
+END;

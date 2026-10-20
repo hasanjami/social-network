@@ -1,0 +1,23 @@
+# Database file (will be mounted as volume)
+social.db
+
+# Uploaded files (will be mounted as volume)
+pkg/db/uploads/avatars/*
+!pkg/db/uploads/avatars/default-avatar.png
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Logs
+*.log
